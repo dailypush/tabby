@@ -151,8 +151,11 @@ include('templates/header.php');
 include('resources/users.php');
 
 if($location == 'logout') {
+	// always show empty nav bar
 	include('templates/emptynav.html');
+	// unset loggedin session variable
 	unset($_SESSION['tabby_loggedin']);
+	// show success message
 	$success = 'You\'ve been signed out.';
 	include('templates/success.php');
 }
