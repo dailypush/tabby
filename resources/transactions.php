@@ -1,51 +1,49 @@
 <?php
 
-function get_transactions_per_activity() {
-	global $db;
-	$activities = array();
-	$get = $db->prepare('SELECT a.id AS activity_id, a.name AS activity_name, a.date AS activity_date, debts.comment AS comment, debts.amount AS amount, debtors.id AS debtorid, debtors.name AS name FROM activities AS a, debts, debtors WHERE a.owner=? AND debtors.owner=? AND a.id=debts.activity AND debts.debtor=debtors.id ORDER BY activity_date DESC, activity_id DESC');
-	$get->execute(array($_SESSION['tabby_loggedin'], $_SESSION['tabby_loggedin']));
-	$finstate = get_all_debtor_financial_state();
-	while($row = $get->fetch(PDO::FETCH_ASSOC)) {
-		if(in_array($row['activity_id'], $finstate[$row['debtorid']]['red'])) {
-			$row['color'] = 'red';
-		}
-		elseif(in_array($row['activity_id'], $finstate[$row['debtorid']]['orange'])) {
-			$row['color'] = 'orange';
-		}
-		else {
-			$row['color'] = 'neutral';
-		}
-		if(!isset($activities[$row['activity_id']])) {
-			$activities[$row['activity_id']] = array('id' => $row['activity_id'], 'name' => $row['activity_name'], 'date' => $row['activity_date'], 'data' => array());
-		}
-		$activities[$row['activity_id']]['data'][] = array('name' => $row['name'], 'comment' => $row['comment'], 'amount' => $row['amount'], 'color' => $row['color']);
-	}
-	return $activities;
+function getTransactionsPerActivity() {
+    global $db;
+    $activities = [];
+    $query = $db->prepare('SELECT a.id AS activity_id, a.name AS activity_name, a.date AS activity_date, debts.comment AS comment, debts.amount AS amount, debtors.id AS debtorid, debtors.name AS name FROM activities AS a, debts, debtors WHERE a.owner = ? AND debtors.owner = ? AND a.id = debts.activity AND debts.debtor = debtors.id ORDER BY activity_date DESC, activity_id DESC');
+    $query->execute([$_SESSION['tabby_loggedin'], $_SESSION['tabby_loggedin']]);
+    $financialState = getAllDebtorFinancialState();
+
+    while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+        $row['color'] = getColor($row, $financialState);
+        if (!isset($activities[$row['activity_id']])) {
+            $activities[$row['activity_id']] = ['id' => $row['activity_id'], 'name' => $row['activity_name'], 'date' => $row['activity_date'], 'data' => []];
+        }
+        $activities[$row['activity_id']]['data'][] = ['name' => $row['name'], 'comment' => $row['comment'], 'amount' => $row['amount'], 'color' => $row['color']];
+    }
+
+    return $activities;
 }
 
-function get_activity_transactions($actid) {
-	global $db;
-	$activity = array();
-	$get = $db->prepare('SELECT a.id AS activity_id, a.name AS activity_name, a.date AS activity_date, debts.id AS debtid, debts.comment AS comment, debts.amount AS amount, debtors.id AS debtorid, debtors.name AS name FROM activities AS a, debts, debtors WHERE a.id=? AND a.owner=? AND debtors.owner=? AND a.id=debts.activity AND debts.debtor=debtors.id ORDER BY activity_date DESC, activity_id DESC');
-	$get->execute(array($actid, $_SESSION['tabby_loggedin'], $_SESSION['tabby_loggedin']));
-	$finstate = get_all_debtor_financial_state();
-	while($row = $get->fetch(PDO::FETCH_ASSOC)) {
-		if(in_array($row['activity_id'], $finstate[$row['debtorid']]['red'])) {
-			$row['color'] = 'red';
-		}
-		elseif(in_array($row['activity_id'], $finstate[$row['debtorid']]['orange'])) {
-			$row['color'] = 'orange';
-		}
-		else {
-			$row['color'] = 'neutral';
-		}
-		if(empty($activity)) {
-			$activity = array('id' => $row['activity_id'], 'name' => $row['activity_name'], 'date' => $row['activity_date'], 'data' => array());
-		}
-		$activity['data'][] = array('id' => $row['debtid'],'name' => $row['name'], 'comment' => $row['comment'], 'amount' => $row['amount'], 'color' => $row['color']);
-	}
-	return $activity;
+function getActivityTransactions($activityId) {
+    global $db;
+    $activity = [];
+    $query = $db->prepare('SELECT a.id AS activity_id, a.name AS activity_name, a.date AS activity_date, debts.id AS debtid, debts.comment AS comment, debts.amount AS amount, debtors.id AS debtorid, debtors.name AS name FROM activities AS a, debts, debtors WHERE a.id = ? AND a.owner = ? AND debtors.owner = ? AND a.id = debts.activity AND debts.debtor = debtors.id ORDER BY activity_date DESC, activity_id DESC');
+    $query->execute([$activityId, $_SESSION['tabby_loggedin'], $_SESSION['tabby_loggedin']]);
+    $financialState = getAllDebtorFinancialState();
+
+    while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+        $row['color'] = getColor($row, $financialState);
+        if (empty($activity)) {
+            $activity = ['id' => $row['activity_id'], 'name' => $row['activity_name'], 'date' => $row['activity_date'], 'data' => []];
+        }
+        $activity['data'][] = ['id' => $row['debtid'], 'name' => $row['name'], 'comment' => $row['comment'], 'amount' => $row['amount'], 'color' => $row['color']];
+    }
+
+    return $activity;
+}
+
+function getColor($row, $financialState) {
+    if (in_array($row['activity_id'], $financialState[$row['debtorid']]['red'])) {
+        return 'red';
+    } elseif (in_array($row['activity_id'], $financialState[$row['debtorid']]['orange'])) {
+        return 'orange';
+    } else {
+        return 'neutral';
+    }
 }
 
 function get_transactions_per_debtor() {

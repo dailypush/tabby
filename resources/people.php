@@ -26,7 +26,7 @@ function check_any_debtors($emails) {
 			return FALSE;
 		}
 	}
-	return T;
+	return TRUE;
 }
 
 function add_debtor($name, $email) {
@@ -84,7 +84,7 @@ function get_debtor_token($email) {
 function create_debtor_token($email) {
 	global $db;
 	$insert = $db->prepare('INSERT INTO tokens VALUES (?,?)');
-	$token = str_rand(25);
+	$token = randomString(25);
 	$insert->execute(array($email, $token));
 	return $token;
 }
@@ -103,7 +103,7 @@ function get_token_email($token) {
 function reset_token($token) {
 	global $db;
 	$update = $db->prepare('UPDATE tokens SET token=? WHERE token=?');
-	$newtoken = str_rand(25);
+	$newtoken = randomString(25);
 	$update->execute(array($newtoken, $token));
 	return $newtoken;
 }

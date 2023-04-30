@@ -1,25 +1,27 @@
 <?php
 
-function check_credentials($email, $password) {
-	global $db;
-	$get = $db->prepare('SELECT password FROM users WHERE email=?');
-	$get->execute(array($email));
-	$row = $get->fetch();
-	if(password_verify($password, $row['password'])) {
-		if(password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
-			change_password($email, $password);
-		}
-		return TRUE;
-	}
-	return FALSE;
+function checkCredentials($email, $password) {
+    global $db;
+    $query = $db->prepare('SELECT password FROM users WHERE email = ?');
+    $query->execute([$email]);
+    $row = $query->fetch();
+
+    if (password_verify($password, $row['password'])) {
+        if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
+            changePassword($email, $password);
+        }
+        return true;
+    }
+
+    return false;
 }
 
-function change_password($email, $newpassword) {
-	global $db;
-	$update = $db->prepare('UPDATE users SET password=? WHERE email=?');
-	$update->execute(array(password_hash($newpassword, PASSWORD_DEFAULT), $email));
+function changePassword($email, $newPassword) {
+    global $db;
+    $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+    $query = $db->prepare('UPDATE users SET password = ? WHERE email = ?');
+    $query->execute([$hashedPassword, $email]);
 }
-
 function update_user($email, $name, $iban) {
 	global $db;
 	$update = $db->prepare('UPDATE users SET name=?, iban=? WHERE email=?');
@@ -32,7 +34,7 @@ function register_user($email, $name, $password, $iban) {
 	global $application_email;
 	
 	$insert = $db->prepare('INSERT INTO pending_users VALUES (?,?,?,?,?,NOW())');
-	$confirm = str_rand(25);
+	$confirm = randomString(25);
 	$insert->execute(array($email, $name, password_hash($password, PASSWORD_DEFAULT), $iban, $confirm));
 	
 	$message = "Hi " . $name . ",\r\n\r\nYou have registered an account with a Tabby instance for debt management.\r\nPlease confirm your account by visiting " . $base_url . "confirm/" . $confirm . "\r\n\r\nHave a nice day!\r\n\r\nTabby";
@@ -49,7 +51,7 @@ function user_email_confirm($confirmation) {
 	$get = $db->prepare('SELECT count(*) FROM pending_users WHERE confirmation=?');
 	$get->execute(array($confirmation));
 	if($get->fetchColumn() > 0) {
-		$newconfirm = str_rand(25);
+		$newconfirm = randomString(25);
 		$update = $db->prepare('UPDATE pending_users SET confirmation=? WHERE confirmation=?');
 		$update->execute(array($newconfirm, $confirmation));
 		
@@ -123,7 +125,7 @@ function get_confirmed_aliases() {
 
 function add_user_alias($email) {
 	global $db;
-	$aliastoken = str_rand(25);
+	$aliastoken = randomString(25);
 	$insert = $db->prepare('INSERT INTO aliases VALUES (?,?,?)');
 	$insert->execute(array($email, $_SESSION['tabby_loggedin'], $aliastoken));
 	email_alias_confirmation($email, $aliastoken);
@@ -203,11 +205,13 @@ function get_users_by_reminddif($days) {
 	return $get->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function str_rand($length) {
-	$chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-	$return = '';
-	for ($i = 0; $i < $length; $i++) {
-        $return .= $chars[random_int(0, strlen($chars)-1)];
+function randomString($length) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $result = '';
+
+    for ($i = 0; $i < $length; $i++) {
+        $result .= $characters[random_int(0, strlen($characters) - 1)];
     }
-	return $return;
+
+    return $result;
 }
